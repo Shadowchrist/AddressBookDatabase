@@ -87,8 +87,8 @@ public class DatabaseOperations {
 		}
 		return book;
 	}
-
-	public synchronized static void addDetailinBook(AddressBookSingle book, AddressBookMain contact, String index) {
+	
+	public synchronized static void addDetailinBook(String bookName, AddressBookMain contact, String index) {
 		
 		Connection[] connection = new Connection[1];
 		try {
@@ -134,7 +134,7 @@ public class DatabaseOperations {
 		threadStatus.put(2, false);
 		Runnable task2 = () -> {
 			String bookSql = String.format("INSERT INTO addressbooks(Book_Name, Phone_Number) values ('%s', '%s');",
-					book.name, contact.phoneNumber);
+					bookName, contact.phoneNumber);
 			try {
 				bookStatement = connection[0].prepareStatement(bookSql);
 				bookStatement.executeUpdate(bookSql);
@@ -173,12 +173,91 @@ public class DatabaseOperations {
 			}
 		}
 	}
+	
+	public void updateContactPhoneNumber(String firstName, String lastName, String phone) {
+		try (Connection connection = DatabaseOperations.connect();) {
+			contactStatement = connection.prepareStatement("update contact set Phone_Number = '?' where First_Name = '?', Last_Name = '?'");
+			contactStatement.setString(1, phone);
+			contactStatement.setString(2, firstName);
+			contactStatement.setString(3, lastName);
+			int result = contactStatement.executeUpdate();
+			if (result == 1)
+				initializeDictionary();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void updatePhoneNumber(String firstName, String lastName, String phone) {
+		for (AddressBookMain e : AddressBookDictionary.initializeList()) {
+			if (e.firstName==firstName && e.lastName==lastName) {
+				e.phoneNumber=phone;
+			}
+		}
+	}
 
-	public static void createBook(String bookName) {
-
+	
+	public boolean checkIfDBInSync(String firstName, String lastName) {
+		AddressBookMain contactDB = getContact(firstName, lastName);
+		AddressBookMain contactInList = null;
+		for (AddressBookMain e : AddressBookDictionary.initializeList()) {
+			if (e.firstName==firstName && e.lastName==lastName) {
+				contactInList = e;
+			}
+		}
+		return contactDB.equals(contactInList);
+	}
+	
+	public int getNoOfContactsByCity(String city) {
+		int count = 0;
+		String sql = String.format("select * from contacts where City = '%s'", city);
+		try (Connection connection = DatabaseOperations.connect();) {
+			Statement statement = connection.createStatement();
+			ResultSet result = statement.executeQuery(sql);
+			while (result.next()) {
+				count++;
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return count;
+	}
+	
+	public AddressBookMain getContact(String firstName, String lastName) {
+		AddressBookMain contact = null;
+		String query = String.format("select First_Name,Last_Name,Address,City,State,Zip,Email,contacts.Phone_Number, Book_Name from contacts "
+						+ "join addressbooks on addressbooks.Phone_Number=contacts.Phone_Number "
+						+ "where First_Name='%s',Last_Name='%s'", firstName, lastName);
+		Statement statement;
+		ResultSet result = null;
+		try (Connection connection = DatabaseOperations.connect();) {
+			statement = connection.createStatement();
+			result = statement.executeQuery(query);
+			while (result.next()) {
+				contact = new AddressBookMain(result.getString("First_Name"), result.getString("Last_Name"),
+						result.getString("Address"), result.getString("City"), result.getString("State"),
+						result.getInt("Zip"), result.getString("Phone_Number"), result.getString("Email"), result.getString("Book_Name"));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return contact;
+	}
+	
+	public List<AddressBookMain> addMultipleAddressBookMains(List<AddressBookMain> contactList) {
+		for(AddressBookMain contact: contactList)
+		{
+			addDetailinBook(contact.bookName,contact,contact.toString());
+		}
+		initializeDictionary();
+		return AddressBookDictionary.initializeList();
 	}
 
 	public static void editDetailsinBook(AddressBookSingle book, AddressBookMain addressBookMain, String index, int i) {
+
+	}
+	
+	public static void createBook(String bookName) {
 
 	}
 }

@@ -35,7 +35,7 @@ public class AddressBookSingle {
 			AddressBookMain contact = new AddressBookMain(firstName,lastName,address,city,
 									  state,zip,phoneNumber,email,book.name);
 			book.addressbook.put(index,contact);
-			DatabaseOperations.addDetailinBook(book,contact,phoneNumber);
+			DatabaseOperations.addDetailinBook(book.name,contact,phoneNumber);
 			System.out.println("New contact added.");
 			book.addressbook.get(index).Display();
 		}
