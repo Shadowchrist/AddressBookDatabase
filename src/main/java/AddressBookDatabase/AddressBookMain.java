@@ -12,9 +12,9 @@ public class AddressBookMain {
 	public String phoneNumber;
 	public String email;
 	
-	public AddressBookMain(String firstName, String lastName, String address, 
-						   String city, String state, int zip, 
-						   String phoneNumber, String email, String bookName)
+	public AddressBookMain(String bookName, String firstName, String lastName, 
+		      	           String address, String city, String state, int zip, 
+						   String phoneNumber, String email)
 	{
 		this.bookName=bookName;
 		this.firstName=firstName;
@@ -30,7 +30,9 @@ public class AddressBookMain {
 	@Override
 	public String toString()
 	{
-		return (firstName+" "+lastName+"-"+bookName).toUpperCase();
+		return "Book Name: "+ bookName + "\n" + "First Name: "+ firstName + "\n" + "Last Name: "+ lastName + 
+			   "\n" + "Address: "+ address + "\n" + "City: "+ city + "\n" + "State: "+ state + "\n" + "Zipcode: "+ zip + 
+			   "\n" +"Phone Number: "+ phoneNumber + "\n" + "Email ID: "+ email + "\n";
 	}
 	
 	public void Display()

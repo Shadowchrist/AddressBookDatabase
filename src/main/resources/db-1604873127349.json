@@ -76,28 +76,6 @@
       "zip": 425323,
       "phoneNumber": "45 8902422119",
       "email": "anniejanuarystar@gmail.com"
-    },
-    {
-      "bookName": "Family",
-      "firstName": "Ray",
-      "lastName": "Palmer",
-      "address": "Hall of Justice",
-      "city": "Metropolis",
-      "state": "Columbia",
-      "zip": 153342,
-      "phoneNumber": "45 8768678668",
-      "email": "clarkkent@gmail.com"
-    },
-    {
-      "bookName": "Family",
-      "firstName": "Clark",
-      "lastName": "Kent",
-      "address": "Hall of Justice",
-      "city": "Metropolis",
-      "state": "Columbia",
-      "zip": 153342,
-      "phoneNumber": "45 8768673454",
-      "email": "clarkkent@gmail.com"
     }
   ]
 }

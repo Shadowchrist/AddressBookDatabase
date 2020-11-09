@@ -1,5 +1,6 @@
 package AddressBookDatabase;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 
@@ -8,7 +9,7 @@ public class DatabaseOperations {
 	private static PreparedStatement contactStatement;
 	private static PreparedStatement bookStatement;
 
-	public static void main(String args[]) throws ClassNotFoundException, SQLException {
+	public static void main(String args[]) throws ClassNotFoundException, SQLException, IOException {
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 			System.out.println("Driver created.");
@@ -18,7 +19,7 @@ public class DatabaseOperations {
 		listDrivers();
 		System.out.println("Connection successful at: " + connect());
 		initializeDictionary();
-		AddressBookDictionary.displayAllBooks();
+		AddressBookDictionary.displayCompleteContactList(JSONFileOperations.readDataFromJSONFile());
 	}
 
 	private static Connection connect() throws SQLException {
@@ -73,23 +74,25 @@ public class DatabaseOperations {
 		String sql = String.format(
 				"select First_Name,Last_Name,Address,City,State,Zip,Email,contacts.Phone_Number, Book_Name from contacts "
 						+ "join addressbooks on addressbooks.Phone_Number=contacts.Phone_Number where Book_Name='%s' "
-						+ "order by First_Name, Last_Name",bookName);
+						+ "order by First_Name, Last_Name",
+				bookName);
 		Statement statement = connection.createStatement();
 		ResultSet result = statement.executeQuery(sql);
 		HashMap<String, AddressBookMain> map = new HashMap<>();
 		AddressBookSingle book = new AddressBookSingle(bookName, map);
 		while (result.next()) {
-			AddressBookMain contact = new AddressBookMain(result.getString("First_Name"), result.getString("Last_Name"),
-					result.getString("Address"), result.getString("City"), result.getString("State"),
-					result.getInt("Zip"), result.getString("Phone_Number"), result.getString("Email"), result.getString("Book_Name"));
-			String index = contact.toString();
+			AddressBookMain contact = new AddressBookMain(result.getString("Book_Name"), result.getString("First_Name"),
+					result.getString("Last_Name"), result.getString("Address"), result.getString("City"),
+					result.getString("State"), result.getInt("Zip"), result.getString("Phone_Number"),
+					result.getString("Email"));
+			String index = (contact.firstName + " " + contact.lastName + "-" + contact.bookName).toUpperCase();
 			book.addressbook.put(index, contact);
 		}
 		return book;
 	}
-	
+
 	public synchronized static void addDetailinBook(String bookName, AddressBookMain contact, String index) {
-		
+
 		Connection[] connection = new Connection[1];
 		try {
 			connection[0] = DatabaseOperations.connect();
@@ -97,17 +100,17 @@ public class DatabaseOperations {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
-		HashMap<Integer, Boolean> threadStatus=new HashMap<>();
+
+		HashMap<Integer, Boolean> threadStatus = new HashMap<>();
 		threadStatus.put(1, false);
-		
+
 		Runnable task1 = () -> {
 			String contactSql = String.format(
 					"INSERT INTO contacts(First_Name, Last_Name, Address, City, State, Zip, Phone_Number, Email) "
-				  + "values ('%s', '%s', '%s', '%s', '%s', %d, '%s','%s')",
-				     contact.firstName, contact.lastName, contact.address, contact.city, contact.state, contact.zip,
-					 contact.phoneNumber, contact.email);
-			try {	
+							+ "values ('%s', '%s', '%s', '%s', '%s', %d, '%s','%s')",
+					contact.firstName, contact.lastName, contact.address, contact.city, contact.state, contact.zip,
+					contact.phoneNumber, contact.email);
+			try {
 				contactStatement = connection[0].prepareStatement(contactSql);
 				contactStatement.executeUpdate(contactSql);
 			} catch (SQLException s) {
@@ -122,7 +125,7 @@ public class DatabaseOperations {
 		};
 		Thread thread1 = new Thread(task1);
 		thread1.start();
-		
+
 		while (threadStatus.containsValue(false)) {
 			try {
 				Thread.sleep(1);
@@ -130,7 +133,7 @@ public class DatabaseOperations {
 				e.printStackTrace();
 			}
 		}
-		
+
 		threadStatus.put(2, false);
 		Runnable task2 = () -> {
 			String bookSql = String.format("INSERT INTO addressbooks(Book_Name, Phone_Number) values ('%s', '%s');",
@@ -150,7 +153,7 @@ public class DatabaseOperations {
 		};
 		Thread thread2 = new Thread(task2);
 		thread2.start();
-		
+
 		while (threadStatus.containsValue(false)) {
 			try {
 				Thread.sleep(1);
@@ -158,7 +161,7 @@ public class DatabaseOperations {
 				e.printStackTrace();
 			}
 		}
-		
+
 		try {
 			connection[0].commit();
 		} catch (SQLException s) {
@@ -173,10 +176,11 @@ public class DatabaseOperations {
 			}
 		}
 	}
-	
+
 	public void updateContactPhoneNumber(String firstName, String lastName, String phone) {
 		try (Connection connection = DatabaseOperations.connect();) {
-			contactStatement = connection.prepareStatement("update contact set Phone_Number = '?' where First_Name = '?', Last_Name = '?'");
+			contactStatement = connection
+					.prepareStatement("update contact set Phone_Number = '?' where First_Name = '?', Last_Name = '?'");
 			contactStatement.setString(1, phone);
 			contactStatement.setString(2, firstName);
 			contactStatement.setString(3, lastName);
@@ -187,27 +191,26 @@ public class DatabaseOperations {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public void updatePhoneNumber(String firstName, String lastName, String phone) {
 		for (AddressBookMain e : AddressBookDictionary.initializeList()) {
-			if (e.firstName==firstName && e.lastName==lastName) {
-				e.phoneNumber=phone;
+			if (e.firstName == firstName && e.lastName == lastName) {
+				e.phoneNumber = phone;
 			}
 		}
 	}
 
-	
 	public boolean checkIfDBInSync(String firstName, String lastName) {
 		AddressBookMain contactDB = getContact(firstName, lastName);
 		AddressBookMain contactInList = null;
 		for (AddressBookMain e : AddressBookDictionary.initializeList()) {
-			if (e.firstName==firstName && e.lastName==lastName) {
+			if (e.firstName == firstName && e.lastName == lastName) {
 				contactInList = e;
 			}
 		}
 		return contactDB.equals(contactInList);
 	}
-	
+
 	public int getNoOfContactsByCity(String city) {
 		int count = 0;
 		String sql = String.format("select * from contacts where City = '%s'", city);
@@ -222,32 +225,33 @@ public class DatabaseOperations {
 		}
 		return count;
 	}
-	
+
 	public AddressBookMain getContact(String firstName, String lastName) {
 		AddressBookMain contact = null;
-		String query = String.format("select First_Name,Last_Name,Address,City,State,Zip,Email,contacts.Phone_Number, Book_Name from contacts "
+		String query = String.format(
+				"select First_Name,Last_Name,Address,City,State,Zip,Email,contacts.Phone_Number, Book_Name from contacts "
 						+ "join addressbooks on addressbooks.Phone_Number=contacts.Phone_Number "
-						+ "where First_Name='%s',Last_Name='%s'", firstName, lastName);
+						+ "where First_Name='%s',Last_Name='%s'",
+				firstName, lastName);
 		Statement statement;
 		ResultSet result = null;
 		try (Connection connection = DatabaseOperations.connect();) {
 			statement = connection.createStatement();
 			result = statement.executeQuery(query);
 			while (result.next()) {
-				contact = new AddressBookMain(result.getString("First_Name"), result.getString("Last_Name"),
+				contact = new AddressBookMain(result.getString("Book_Name"), result.getString("First_Name"), result.getString("Last_Name"),
 						result.getString("Address"), result.getString("City"), result.getString("State"),
-						result.getInt("Zip"), result.getString("Phone_Number"), result.getString("Email"), result.getString("Book_Name"));
+						result.getInt("Zip"), result.getString("Phone_Number"), result.getString("Email"));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 		return contact;
 	}
-	
+
 	public List<AddressBookMain> addMultipleAddressBookMains(List<AddressBookMain> contactList) {
-		for(AddressBookMain contact: contactList)
-		{
-			addDetailinBook(contact.bookName,contact,contact.toString());
+		for (AddressBookMain contact : contactList) {
+			addDetailinBook(contact.bookName, contact, contact.toString());
 		}
 		initializeDictionary();
 		return AddressBookDictionary.initializeList();
@@ -256,7 +260,7 @@ public class DatabaseOperations {
 	public static void editDetailsinBook(AddressBookSingle book, AddressBookMain addressBookMain, String index, int i) {
 
 	}
-	
+
 	public static void createBook(String bookName) {
 
 	}

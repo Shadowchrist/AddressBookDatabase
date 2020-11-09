@@ -32,8 +32,8 @@ public class AddressBookSingle {
 			String state=UserInput.getState();
 			int zip=UserInput.getZipcode();
 			String email=UserInput.getEmail();
-			AddressBookMain contact = new AddressBookMain(firstName,lastName,address,city,
-									  state,zip,phoneNumber,email,book.name);
+			AddressBookMain contact = new AddressBookMain(book.name,firstName,lastName,address,city,
+									  state,zip,phoneNumber,email);
 			book.addressbook.put(index,contact);
 			DatabaseOperations.addDetailinBook(book.name,contact,phoneNumber);
 			System.out.println("New contact added.");

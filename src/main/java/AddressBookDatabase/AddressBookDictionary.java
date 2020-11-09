@@ -130,4 +130,11 @@ public class AddressBookDictionary {
 			}
 		}
 	}
+
+	public static void displayCompleteContactList(List<AddressBookMain> readDataFromJSONFile) {
+		for(AddressBookMain contact: readDataFromJSONFile)
+		{
+			contact.toString();
+		}
+	}
 }
